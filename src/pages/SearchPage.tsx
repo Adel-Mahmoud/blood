@@ -1,0 +1,132 @@
+import { useState } from "react";
+import { Search, Droplets, MapPin, Phone, User } from "lucide-react";
+import { BLOOD_TYPES, GOVERNORATES, Donor } from "@/lib/types";
+import { searchDonors } from "@/lib/donors";
+
+const SearchPage = () => {
+  const [filters, setFilters] = useState({ bloodType: "", governorate: "", center: "" });
+  const [results, setResults] = useState<Donor[]>([]);
+  const [searched, setSearched] = useState(false);
+
+  const centers = filters.governorate ? GOVERNORATES[filters.governorate] || [] : [];
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFilters((prev) => {
+      if (name === "governorate") return { ...prev, governorate: value, center: "" };
+      return { ...prev, [name]: value };
+    });
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setResults(searchDonors(filters));
+    setSearched(true);
+  };
+
+  const inputClass =
+    "w-full px-4 py-3 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all";
+
+  return (
+    <div className="min-h-screen py-12">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="text-center mb-10 animate-fade-in">
+          <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Search className="text-primary-foreground" size={28} />
+          </div>
+          <h1 className="text-3xl font-bold text-foreground">البحث عن متبرع</h1>
+          <p className="text-muted-foreground mt-2">ابحث بفصيلة الدم أو المنطقة للعثور على أقرب متبرع</p>
+        </div>
+
+        <form onSubmit={handleSearch} className="bg-card rounded-2xl shadow-card p-8 mb-8 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">فصيلة الدم</label>
+              <select name="bloodType" value={filters.bloodType} onChange={handleChange} className={inputClass}>
+                <option value="">جميع الفصائل</option>
+                {BLOOD_TYPES.map((bt) => (
+                  <option key={bt} value={bt}>{bt}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">المحافظة</label>
+              <select name="governorate" value={filters.governorate} onChange={handleChange} className={inputClass}>
+                <option value="">جميع المحافظات</option>
+                {Object.keys(GOVERNORATES).map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">المركز</label>
+              <select name="center" value={filters.center} onChange={handleChange} className={inputClass} disabled={!filters.governorate}>
+                <option value="">جميع المراكز</option>
+                {centers.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="mt-6 w-full gradient-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover:shadow-card-hover transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
+          >
+            <Search size={20} />
+            بحث
+          </button>
+        </form>
+
+        {/* Results */}
+        {searched && (
+          <div className="animate-fade-in">
+            <h2 className="text-xl font-bold text-foreground mb-4">
+              نتائج البحث ({results.length})
+            </h2>
+            {results.length === 0 ? (
+              <div className="bg-card rounded-2xl shadow-card p-12 text-center">
+                <Droplets className="mx-auto text-muted-foreground mb-4" size={48} />
+                <p className="text-muted-foreground text-lg">لا توجد نتائج مطابقة</p>
+                <p className="text-muted-foreground text-sm mt-2">جرّب تغيير معايير البحث</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {results.map((donor) => (
+                  <div key={donor.id} className="bg-card rounded-2xl shadow-card p-6 hover:shadow-card-hover transition-all">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center">
+                          <span className="text-primary-foreground font-bold text-sm">{donor.bloodType}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-foreground flex items-center gap-1">
+                            <User size={14} /> {donor.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <MapPin size={12} /> {donor.governorate} - {donor.center}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {donor.village && (
+                      <p className="text-sm text-muted-foreground mb-2">المنطقة: {donor.village}</p>
+                    )}
+                    <a
+                      href={`tel:${donor.phone}`}
+                      className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent/80 transition-colors"
+                    >
+                      <Phone size={14} />
+                      {donor.phone}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default SearchPage;

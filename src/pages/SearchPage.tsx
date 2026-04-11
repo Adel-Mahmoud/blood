@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Search, Droplets, MapPin, Phone, User } from "lucide-react";
 import { BLOOD_TYPES, GOVERNORATES, Donor } from "@/lib/types";
-import { searchDonors } from "@/lib/donors";
+// import { searchDonors } from "@/lib/donors";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 const SearchPage = () => {
   const [filters, setFilters] = useState({ bloodType: "", governorate: "", center: "" });
@@ -18,10 +20,41 @@ const SearchPage = () => {
     });
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  // const handleSearch = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setResults(searchDonors(filters));
+  //   setSearched(true);
+  // };
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setResults(searchDonors(filters));
-    setSearched(true);
+  
+    try {
+      let q = query(collection(db, "donors"));
+  
+      if (filters.bloodType) {
+        q = query(q, where("bloodType", "==", filters.bloodType));
+      }
+  
+      if (filters.governorate) {
+        q = query(q, where("governorate", "==", filters.governorate));
+      }
+  
+      if (filters.center) {
+        q = query(q, where("center", "==", filters.center));
+      }
+  
+      const querySnapshot = await getDocs(q);
+  
+      const data: Donor[] = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Donor[];
+  
+      setResults(data);
+      setSearched(true);
+    } catch (error) {
+      console.error("Error fetching donors:", error);
+    }
   };
 
   const inputClass =

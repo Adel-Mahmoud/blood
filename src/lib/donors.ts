@@ -1,38 +1,46 @@
 import { Donor } from "./types";
+import { db, auth } from "./firebase";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  Timestamp,
+  getDocFromCache,
+  getDocFromServer,
+} from "firebase/firestore";
 
-const STORAGE_KEY = "blood_bank_donors";
+export const addDonor = async (donor: any) => {
+  const user = auth.currentUser;
 
-export function getDonors(): Donor[] {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
-}
+  if (!user) {
+    throw new Error("User not logged in");
+  }
 
-export function addDonor(donor: Omit<Donor, "id" | "createdAt">): Donor {
-  const donors = getDonors();
-  const newDonor: Donor = {
+  const donorRef = doc(db, "donors", user.uid);
+
+  const existing = await getDoc(donorRef);
+
+  const data = {
     ...donor,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
+    userId: user.uid,
+    email: user.email,
+    photo: user.photoURL,
+    updatedAt: Timestamp.now(),
+    createdAt: existing.exists()
+      ? existing.data().createdAt
+      : Timestamp.now(),
   };
-  donors.push(newDonor);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(donors));
-  return newDonor;
-}
 
-export function searchDonors(filters: {
-  bloodType?: string;
-  governorate?: string;
-  center?: string;
-}): Donor[] {
-  let donors = getDonors();
-  if (filters.bloodType) {
-    donors = donors.filter((d) => d.bloodType === filters.bloodType);
-  }
-  if (filters.governorate) {
-    donors = donors.filter((d) => d.governorate === filters.governorate);
-  }
-  if (filters.center) {
-    donors = donors.filter((d) => d.center === filters.center);
-  }
-  return donors;
-}
+  await setDoc(donorRef, data);
+};
+
+export const getMyDonor = async (): Promise<Donor | null> => {
+  const user = auth.currentUser;
+
+  if (!user) return null;
+
+  const donorRef = doc(db, "donors", user.uid);
+  const snap = await getDoc(donorRef);
+
+  return snap.exists() ? (snap.data() as Donor) : null;
+};

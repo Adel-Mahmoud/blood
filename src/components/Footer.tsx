@@ -20,8 +20,8 @@ const Footer = () => (
         </div>
         <div>
           <h3 className="text-lg font-bold mb-3">تواصل معنا</h3>
-          <p className="text-sm opacity-80">info@bloodbank.com</p>
-          <p className="text-sm opacity-80">01000000000</p>
+          <p className="text-sm opacity-80">adelmahmoud75@gmail.com</p>
+          <p className="text-sm opacity-80">01018646196</p>
         </div>
       </div>
       <div className="border-t border-primary-foreground/20 mt-6 pt-4 text-center text-sm opacity-70 flex items-center justify-center gap-1">

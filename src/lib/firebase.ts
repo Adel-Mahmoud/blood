@@ -5,14 +5,9 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDb_-Pl7fMEQiBnYmi1TqZeASQMSLbwAnk",
-    authDomain: "alaa-760fd.firebaseapp.com",
-    databaseURL: "https://alaa-760fd.firebaseio.com",
-    projectId: "alaa-760fd",
-    storageBucket: "alaa-760fd.firebasestorage.app",
-    messagingSenderId: "110443455564",
-    appId: "1:110443455564:web:78a530522599d8aa5680e9",
-    measurementId: "G-PNT0S6D9MT"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
 };
 
 const app = initializeApp(firebaseConfig);

@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Index from "./pages/Index";
 import Register from "./pages/Register";
+import EditDonor from "./pages/EditDonor";
 import SearchPage from "./pages/SearchPage";
 import About from "./pages/About";
 import Login from "./pages/Login";
@@ -19,7 +20,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <HashRouter>
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen font-arabic">
           <Navbar />
           <main className="flex-1">
             <Routes>
@@ -32,6 +33,7 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route path="/edit-donor" element={<EditDonor />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/about" element={<About />} />
               <Route path="/login" element={<Login />} />

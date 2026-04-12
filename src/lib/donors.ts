@@ -4,10 +4,19 @@ import {
   doc,
   setDoc,
   getDoc,
+  deleteDoc,
   Timestamp,
   getDocFromCache,
   getDocFromServer,
 } from "firebase/firestore";
+
+export const deleteDonor = async () => {
+  const user = auth.currentUser;
+
+  if (!user) throw new Error("Not logged in");
+
+  await deleteDoc(doc(db, "donors", user.uid));
+};
 
 export const addDonor = async (donor: any) => {
   const user = auth.currentUser;

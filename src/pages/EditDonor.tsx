@@ -1,17 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserPlus, CheckCircle } from "lucide-react";
 import { BLOOD_TYPES, GOVERNORATES } from "@/lib/types";
-import { addDonor, getMyDonor } from "@/lib/donors";
-import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
+import { getMyDonor, addDonor, deleteDonor } from "@/lib/donors";
 
-const Register = () => {
+const EditDonor = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
-  const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const [form, setForm] = useState({
     name: "",
@@ -25,27 +22,34 @@ const Register = () => {
   });
 
   useEffect(() => {
-    const checkDonor = async () => {
+    const loadData = async () => {
       const donor = await getMyDonor();
 
-      if (donor) {
-        navigate("/edit-donor", { replace: true });
+      if (!donor) {
+        navigate("/register", { replace: true });
         return;
       }
 
-      setChecking(false);
+      setForm({
+        name: donor.name || "",
+        phone: donor.phone || "",
+        bloodType: donor.bloodType || "",
+        governorate: donor.governorate || "",
+        center: donor.center || "",
+        village: donor.village || "",
+        age: donor.age ? String(donor.age) : "",
+        lastDonation: donor.lastDonation || "",
+      });
+
+      setInitialLoading(false);
     };
 
-    checkDonor();
-  }, [navigate]);
+    loadData();
+  }, []);
 
-  const centers = form.governorate
-    ? GOVERNORATES[form.governorate] || []
-    : [];
+  const centers = form.governorate ? GOVERNORATES[form.governorate] || [] : [];
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
     setForm((prev) => {
@@ -56,15 +60,10 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!form.name || !form.phone || !form.bloodType || !form.governorate) {
-      toast({
-        title: "خطأ",
-        description: "يرجى ملء جميع الحقول المطلوبة",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -76,18 +75,20 @@ const Register = () => {
         age: form.age ? Number(form.age) : null,
       });
 
-      toast({
-        title: "تم التسجيل بنجاح! ✓",
-        description: "شكراً لك على تبرعك بالدم",
-      });
-
       navigate("/");
-    } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء الحفظ",
-        variant: "destructive",
-      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("هل أنت متأكد من حذف بياناتك؟")) return;
+
+    setLoading(true);
+
+    try {
+      await deleteDonor();
+      navigate("/", { replace: true });
     } finally {
       setLoading(false);
     }
@@ -98,11 +99,12 @@ const Register = () => {
 
   const labelClass = "block text-sm font-semibold text-foreground mb-2";
 
-  if (checking) {
+  if (initialLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">
-          جاري التحقق...
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-muted-foreground">جاري تحميل البيانات...</p>
         </div>
       </div>
     );
@@ -117,49 +119,34 @@ const Register = () => {
           </div>
 
           <h1 className="text-3xl font-bold text-foreground">
-            تسجيل متبرع جديد
+            تعديل بيانات المتبرع
           </h1>
 
           <p className="text-muted-foreground mt-2">
-            أدخل بياناتك لتكون جزءاً من مجتمع المنقذين
+            يمكنك تحديث بياناتك أو حذفها في أي وقت
           </p>
         </div>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleUpdate}
           className="bg-card rounded-2xl shadow-card p-8 space-y-5 animate-fade-in"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className={labelClass}>الاسم الكامل *</label>
-              <input
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                className={inputClass}
-              />
+              <input name="name" value={form.name} onChange={handleChange} className={inputClass} />
             </div>
 
             <div>
               <label className={labelClass}>رقم الهاتف *</label>
-              <input
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                className={inputClass}
-              />
+              <input name="phone" value={form.phone} onChange={handleChange} className={inputClass} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className={labelClass}>فصيلة الدم *</label>
-              <select
-                name="bloodType"
-                value={form.bloodType}
-                onChange={handleChange}
-                className={inputClass}
-              >
+              <select name="bloodType" value={form.bloodType} onChange={handleChange} className={inputClass}>
                 <option value="">اختر فصيلة الدم</option>
                 {BLOOD_TYPES.map((bt) => (
                   <option key={bt} value={bt}>
@@ -171,25 +158,14 @@ const Register = () => {
 
             <div>
               <label className={labelClass}>العمر</label>
-              <input
-                name="age"
-                value={form.age}
-                onChange={handleChange}
-                className={inputClass}
-                type="number"
-              />
+              <input name="age" value={form.age} onChange={handleChange} className={inputClass} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className={labelClass}>المحافظة *</label>
-              <select
-                name="governorate"
-                value={form.governorate}
-                onChange={handleChange}
-                className={inputClass}
-              >
+              <select name="governorate" value={form.governorate} onChange={handleChange} className={inputClass}>
                 <option value="">اختر المحافظة</option>
                 {Object.keys(GOVERNORATES).map((g) => (
                   <option key={g} value={g}>
@@ -218,12 +194,31 @@ const Register = () => {
             </div>
           </div>
 
+          <div>
+            <label className={labelClass}>القرية / المنطقة</label>
+            <input name="village" value={form.village} onChange={handleChange} className={inputClass} />
+          </div>
+
+          <div>
+            <label className={labelClass}>آخر تاريخ تبرع</label>
+            <input type="date" name="lastDonation" value={form.lastDonation} onChange={handleChange} className={inputClass} />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
             className="w-full gradient-primary text-primary-foreground py-4 rounded-xl font-bold"
           >
-            {loading ? "جاري التسجيل..." : "تسجيل المتبرع"}
+            {loading ? "جاري التحديث..." : "تحديث البيانات"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={loading}
+            className="w-full bg-red-600 text-white py-3 rounded-xl font-bold"
+          >
+            حذف الحساب
           </button>
         </form>
       </div>
@@ -231,4 +226,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default EditDonor;

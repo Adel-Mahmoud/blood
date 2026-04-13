@@ -27,7 +27,7 @@ const Login = () => {
       <button
         onClick={handleLogin}
         disabled={loading}
-        className="flex items-center gap-3 px-6 py-3 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-900 transition-all disabled:opacity-50"
+        className="flex items-center gap-3 px-6 py-3 gradient-primary text-white rounded-lg shadow-md hover:bg-red-600 transition-all disabled:opacity-50"
       >
         {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول بحساب جوجل"}
         <svg className="w-5 h-5" viewBox="0 0 48 48">

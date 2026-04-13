@@ -21,10 +21,14 @@ export default defineConfig(({ mode }) => ({
 
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png"],
+      includeAssets: ["favicon.ico", "apple-touch-icon.png", "offline.html"],
+
+      workbox: {
+        navigateFallback: "/blood/offline.html",
+      },
       manifest: {
         name: "بنك الدم",
-        short_name: "Blood",
+        short_name: "بنك الدم",
         description: "منصة للتبرع بالدم في مصر",
         theme_color: "#e11d48",
         background_color: "#ffffff",

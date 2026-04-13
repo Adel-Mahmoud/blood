@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Search, Droplets, MapPin, Phone, User } from "lucide-react";
 import { BLOOD_TYPES, GOVERNORATES, Donor } from "@/lib/types";
-// import { searchDonors } from "@/lib/donors";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, limit, startAfter, orderBy, QueryDocumentSnapshot } from "firebase/firestore";
 
 const SearchPage = () => {
   const [filters, setFilters] = useState({ bloodType: "", governorate: "", center: "" });
   const [results, setResults] = useState<Donor[]>([]);
   const [searched, setSearched] = useState(false);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const centers = filters.governorate ? GOVERNORATES[filters.governorate] || [] : [];
 
@@ -20,45 +22,100 @@ const SearchPage = () => {
     });
   };
 
-  // const handleSearch = (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setResults(searchDonors(filters));
-  //   setSearched(true);
-  // };
   const [loading, setLoading] = useState(false);
+  
+  const buildQuery = (lastDocSnapshot: QueryDocumentSnapshot | null = null, fetchLimit: number = 4) => {
+    let q = query(collection(db, "donors"), limit(fetchLimit));
+    
+    q = query(q, orderBy("name"));
+
+    if (filters.bloodType) {
+      q = query(q, where("bloodType", "==", filters.bloodType));
+    }
+
+    if (filters.governorate) {
+      q = query(q, where("governorate", "==", filters.governorate));
+    }
+
+    if (filters.center) {
+      q = query(q, where("center", "==", filters.center));
+    }
+
+    if (lastDocSnapshot) {
+      q = query(q, startAfter(lastDocSnapshot));
+    }
+
+    return q;
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+    
     setLoading(true);
     setSearched(true);
-  
+    setLastDoc(null);
+    setHasMore(true);
+    
     try {
-      let q = query(collection(db, "donors"));
-  
-      if (filters.bloodType) {
-        q = query(q, where("bloodType", "==", filters.bloodType));
-      }
-  
-      if (filters.governorate) {
-        q = query(q, where("governorate", "==", filters.governorate));
-      }
-  
-      if (filters.center) {
-        q = query(q, where("center", "==", filters.center));
-      }
-  
+      const q = buildQuery(null, 4);
       const querySnapshot = await getDocs(q);
-  
-      const data: Donor[] = querySnapshot.docs.map((doc) => ({
+      
+      const allData: Donor[] = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Donor[];
-  
-      setResults(data);
+      
+      if (allData.length > 2) {
+        setHasMore(true);
+        setResults(allData.slice(0, 3));
+        setLastDoc(querySnapshot.docs[2]);
+      } else {
+        setHasMore(false);
+        setResults(allData);
+        if (allData.length > 0) {
+          setLastDoc(querySnapshot.docs[allData.length - 1]);
+        } else {
+          setLastDoc(null);
+        }
+      }
     } catch (error) {
       console.error("Error fetching donors:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!lastDoc || loadingMore) return;
+    
+    setLoadingMore(true);
+    
+    try {
+      const q = buildQuery(lastDoc, 4);
+      const querySnapshot = await getDocs(q);
+      
+      const allData: Donor[] = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Donor[];
+      
+      if (allData.length > 3) {
+        setHasMore(true);
+        setResults(prev => [...prev, ...allData.slice(0, 3)]);
+        setLastDoc(querySnapshot.docs[2]);
+      } else {
+        setHasMore(false);
+        setResults(prev => [...prev, ...allData]);
+        if (allData.length > 0) {
+          setLastDoc(querySnapshot.docs[allData.length - 1]);
+        } else {
+          setLastDoc(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading more donors:", error);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -154,47 +211,62 @@ const SearchPage = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {results.map((donor) => (
-                <div
-                  key={donor.id}
-                  className="bg-card rounded-2xl shadow-card p-6 hover:shadow-card-hover transition-all"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center">
-                        <span className="text-primary-foreground font-bold text-sm">
-                          {donor.bloodType}
-                        </span>
-                      </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {results.map((donor) => (
+                  <div
+                    key={donor.id}
+                    className="bg-card rounded-2xl shadow-card p-6 hover:shadow-card-hover transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center">
+                          <span className="text-primary-foreground font-bold text-sm">
+                            {donor.bloodType}
+                          </span>
+                        </div>
 
-                      <div>
-                        <h3 className="font-bold text-foreground flex items-center gap-1">
-                          <User size={14} /> {donor.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <MapPin size={12} /> {donor.governorate} - {donor.center}
-                        </p>
+                        <div>
+                          <h3 className="font-bold text-foreground flex items-center gap-1">
+                            <User size={14} /> {donor.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <MapPin size={12} /> {donor.governorate} - {donor.center}
+                          </p>
+                        </div>
                       </div>
                     </div>
+
+                    {donor.village && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        المنطقة: {donor.village}
+                      </p>
+                    )}
+
+                    <a
+                      href={`tel:${donor.phone}`}
+                      className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent/80 transition-colors"
+                    >
+                      <Phone size={14} />
+                      {donor.phone}
+                    </a>
                   </div>
-
-                  {donor.village && (
-                    <p className="text-sm text-muted-foreground mb-2">
-                      المنطقة: {donor.village}
-                    </p>
-                  )}
-
-                  <a
-                    href={`tel:${donor.phone}`}
-                    className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent/80 transition-colors"
+                ))}
+              </div>
+              
+              {/* Load More Button - يظهر فقط عند وجود صفحات تالية */}
+              {hasMore && (
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="bg-secondary text-secondary-foreground px-6 py-3 rounded-xl font-semibold hover:bg-secondary/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Phone size={14} />
-                    {donor.phone}
-                  </a>
+                    {loadingMore ? "جاري التحميل..." : "تحميل المزيد"}
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Droplets, MapPin, Phone, User } from "lucide-react";
 import { BLOOD_TYPES, GOVERNORATES, Donor } from "@/lib/types";
 import { db } from "@/lib/firebase";
@@ -24,62 +24,53 @@ const SearchPage = () => {
 
   const [loading, setLoading] = useState(false);
   
-  const buildQuery = (lastDocSnapshot: QueryDocumentSnapshot | null = null, fetchLimit: number = 4) => {
-    let q = query(collection(db, "donors"), limit(fetchLimit));
-    
-    q = query(q, orderBy("name"));
-
+  const buildQuery = (lastDocSnapshot: QueryDocumentSnapshot | null = null) => {
+    let q: any = query(
+      collection(db, "donors"),
+      orderBy("name"),
+      limit(10)
+    );
+  
     if (filters.bloodType) {
       q = query(q, where("bloodType", "==", filters.bloodType));
     }
-
+  
     if (filters.governorate) {
       q = query(q, where("governorate", "==", filters.governorate));
     }
-
+  
     if (filters.center) {
       q = query(q, where("center", "==", filters.center));
     }
-
+  
     if (lastDocSnapshot) {
       q = query(q, startAfter(lastDocSnapshot));
     }
-
+  
     return q;
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+  
     setLoading(true);
     setSearched(true);
     setLastDoc(null);
-    setHasMore(true);
-    
+  
     try {
-      const q = buildQuery(null, 4);
-      const querySnapshot = await getDocs(q);
-      
-      const allData: Donor[] = querySnapshot.docs.map((doc) => ({
+      const q = buildQuery(null);
+      const snap = await getDocs(q);
+  
+      const data: Donor[] = snap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Donor[];
-      
-      if (allData.length > 2) {
-        setHasMore(true);
-        setResults(allData.slice(0, 3));
-        setLastDoc(querySnapshot.docs[2]);
-      } else {
-        setHasMore(false);
-        setResults(allData);
-        if (allData.length > 0) {
-          setLastDoc(querySnapshot.docs[allData.length - 1]);
-        } else {
-          setLastDoc(null);
-        }
-      }
+  
+      setResults(data);
+      setLastDoc(snap.docs[snap.docs.length - 1] || null);
+      setHasMore(snap.docs.length === 10);
     } catch (error) {
-      console.error("Error fetching donors:", error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -87,37 +78,35 @@ const SearchPage = () => {
 
   const loadMore = async () => {
     if (!lastDoc || loadingMore) return;
-    
+  
     setLoadingMore(true);
-    
+  
     try {
-      const q = buildQuery(lastDoc, 4);
-      const querySnapshot = await getDocs(q);
-      
-      const allData: Donor[] = querySnapshot.docs.map((doc) => ({
+      const q = buildQuery(lastDoc);
+      const snap = await getDocs(q);
+  
+      const data: Donor[] = snap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Donor[];
-      
-      if (allData.length > 3) {
-        setHasMore(true);
-        setResults(prev => [...prev, ...allData.slice(0, 3)]);
-        setLastDoc(querySnapshot.docs[2]);
-      } else {
-        setHasMore(false);
-        setResults(prev => [...prev, ...allData]);
-        if (allData.length > 0) {
-          setLastDoc(querySnapshot.docs[allData.length - 1]);
-        } else {
-          setLastDoc(null);
-        }
-      }
+  
+      setResults((prev) => [...prev, ...data]);
+      setLastDoc(snap.docs[snap.docs.length - 1] || null);
+      setHasMore(snap.docs.length === 10);
     } catch (error) {
-      console.error("Error loading more donors:", error);
+      console.error(error);
     } finally {
       setLoadingMore(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleSearch();
+    }, 2000);
+  
+    return () => clearTimeout(timer);
+  }, []);
 
   const inputClass =
     "w-full px-4 py-3 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all";

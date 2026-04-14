@@ -122,19 +122,29 @@ const Index = () => {
           <h2 className="text-3xl font-bold text-foreground mb-2">كيف يعمل الموقع؟</h2>
           <p className="text-muted-foreground mb-12">خطوات بسيطة لإنقاذ حياة</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { icon: UserPlus, title: "سجّل حسابك", desc: "أنشئ حسابك وأدخل بياناتك الأساسية وفصيلة دمك" },
-              { icon: Search, title: "ابحث عن متبرع", desc: "ابحث بالفصيلة أو المنطقة للعثور على أقرب متبرع" },
-              { icon: Heart, title: "أنقذ حياة", desc: "تواصل مع المتبرع واحصل على الدم الذي تحتاجه" },
-            ].map((step, i) => (
-              <div key={i} className="bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all group">
+          {[
+            { icon: UserPlus, title: "سجّل حسابك", desc: "أنشئ حسابك وأدخل بياناتك الأساسية وفصيلة دمك", link: "/register" },
+            { icon: Search, title: "ابحث عن متبرع", desc: "ابحث بالفصيلة أو المنطقة للعثور على أقرب متبرع", link: "/search" },
+            { icon: Heart, title: "أنقذ حياة", desc: "تواصل مع المتبرع واحصل على الدم الذي تحتاجه", link: null },
+          ].map((step, i) => {
+            const Card = (
+              <div className="bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all group cursor-pointer">
                 <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:animate-pulse-blood">
                   <step.icon className="text-primary-foreground" size={28} />
                 </div>
                 <h3 className="text-xl font-bold text-foreground mb-3">{step.title}</h3>
                 <p className="text-muted-foreground text-sm">{step.desc}</p>
               </div>
-            ))}
+            );
+
+            return step.link ? (
+              <Link key={i} to={step.link}>
+                {Card}
+              </Link>
+            ) : (
+              <div key={i}>{Card}</div>
+            );
+          })}
           </div>
         </div>
       </section>

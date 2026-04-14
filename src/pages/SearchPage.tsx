@@ -103,7 +103,7 @@ const SearchPage = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       handleSearch();
-    }, 2000);
+    }, 500);
   
     return () => clearTimeout(timer);
   }, []);

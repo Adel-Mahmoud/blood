@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export function NetworkStatus() {
-  const [isOnline, setIsOnline] = useState(navigator.online);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);

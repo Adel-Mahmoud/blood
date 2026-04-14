@@ -90,12 +90,10 @@ const Index = () => {
       {/* Stats */}
       <section className="py-12 -mt-16 relative z-20">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-card rounded-2xl p-6 shadow-card text-center hover:shadow-card-hover transition-all"
-              >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {stats.map((stat) => {
+            const CardContent = (
+              <div className="bg-card rounded-2xl p-6 shadow-card text-center hover:shadow-card-hover transition-all cursor-pointer">
                 <stat.icon className="mx-auto text-primary mb-3" size={36} />
                 <div className="text-3xl font-bold text-foreground">
                   {stat.value}
@@ -104,8 +102,17 @@ const Index = () => {
                   {stat.label}
                 </div>
               </div>
-            ))}
-          </div>
+            );
+
+            return stat.label === "متبرع مسجل" ? (
+              <Link key={stat.label} to="/search">
+                {CardContent}
+              </Link>
+            ) : (
+              <div key={stat.label}>{CardContent}</div>
+            );
+          })}
+        </div>
         </div>
       </section>
 

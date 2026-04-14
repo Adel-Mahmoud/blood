@@ -12,6 +12,7 @@ import About from "./pages/About";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { NetworkStatus } from '@/components/NetworkStatus';
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <HashRouter>
+        <NetworkStatus />
         <div className="flex flex-col min-h-screen font-arabic">
           <Navbar />
           <main className="flex-1">
